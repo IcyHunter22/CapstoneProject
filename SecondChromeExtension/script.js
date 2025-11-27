@@ -22,10 +22,24 @@ chrome.webRequest.onBeforeRequest.addListener(
 );
 */
 // Global declaration (must be 'let' to be reassigned)
-let trackingState = {}; 
-chrome.storage.local.clear(function() {
-    console.log("Extension local storage cleared.");
-});
+let trackingState = {};
+
+// Re-enable URL update notifications
+chrome.webRequest.onBeforeRequest.addListener(
+    function(details) {
+        chrome.runtime.sendMessage({
+            type: "URL_UPDATE",
+            url: details.url
+        }, () => {
+            if (chrome.runtime.lastError) {
+                // This is expected when popup is closed
+                return;
+            }
+        });
+    },
+    {urls: ["<all_urls>"]},
+    []
+);
 (async () => {
     // 1. Await the storage retrieval and declare the 'stored' variable (Fix A)
     const stored = await chrome.storage.local.get(['trackingState']); 
@@ -45,6 +59,14 @@ chrome.storage.local.clear(function() {
 
     // 4. Log the result
 })();
+function getDomain(url) {
+    try {
+        return url.replace(/^(?:https?:\/\/)?(?:www\.)?([^\/]+).*$/, '$1');
+    } catch (e) {
+        return url;
+    }
+}
+
 async function getCurrentTab() {
     let queryOptions = { active: true, lastFocusedWindow: true };
     // `tab` will either be a `tabs.Tab` instance or `undefined`.
@@ -57,16 +79,17 @@ async function getCurrentTab() {
     const dictionary = trackingState.timeDictionary;
     const old_url = trackingState.lastActiveUrl;
     const time_spent = Date.now() - data;
-    if (tab && tab.url && old_url!= null){
-        if(dictionary[old_url] === undefined){
-            dictionary[old_url] = 0
-              
+    
+    if (tab && tab.url && old_url!= null) {
+        const domain = getDomain(old_url);
+        if(dictionary[domain] === undefined){
+            dictionary[domain] = 0
         }
-        dictionary[old_url] += time_spent;
-        //trackingState.lastActiveUrl = tab.url; 
+        dictionary[domain] += time_spent;
     }
+    
     trackingState.lastActiveTime = Date.now();
-    trackingState.lastActiveUrl = tab.url;
+    trackingState.lastActiveUrl = tab?.url;
     chrome.storage.local.set({ 
         "trackingState": trackingState 
     });
@@ -82,4 +105,3 @@ async function getCurrentTab() {
 chrome.tabs.onActivated.addListener((activeInfo)=>{
     getCurrentTab();
 })
-

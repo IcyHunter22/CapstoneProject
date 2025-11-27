@@ -1,17 +1,19 @@
 {
     "manifest_version": 3,
-    "name": "Url-blocker",
+    "name": "URL Tracker",
+    "description": "Track and analyze your browsing patterns",
     "version": "0.0.0.1",
-    "permissions":["storage","tabs","activeTab","webRequest","webNavigation"],
-    "action":{
+    "permissions": ["storage", "tabs", "activeTab", "webRequest", "webNavigation"],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    },
+    "action": {
         "default_popup": "index.html"
     },
-    "background":{
+    "background": {
         "service_worker": "script.js"
     },
-    "host_permissions":[
+    "host_permissions": [
         "<all_urls>"
     ]
-
-    
 }
